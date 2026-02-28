@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>51XUEAI.ORG的2FA验证工具</title>
+
+    <link rel="preload" href="https://unpkg.com/vue@2/dist/vue.js" as="script" />
+    <link rel="preload" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css" as="style" />
+    <link rel="preload" href="https://unpkg.com/element-ui/lib/index.js" as="script" />
+    <link rel="preload" href="https://unpkg.com/otpauth@9.1.4/dist/otpauth.umd.min.js" as="script" />
+
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css" />
+
+    <script src="https://unpkg.com/vue@2/dist/vue.js"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="https://unpkg.com/otpauth@9.1.4/dist/otpauth.umd.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+            background-color: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            margin-top: 30px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1a1a1a;
+            margin: 0 0 8px 0;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: #666;
+            margin: 0 0 16px 0;
+        }
+
+        .textarea-box {
+            position: relative;
+            margin-bottom: 8px;
+        }
+
+        .el-textarea__inner {
+            font-family: monospace;
+            padding-right: 30px;
+        }
+        
+        .clear-btn {
+            position: absolute;
+            right: 8px;
+            bottom: 8px;
+            cursor: pointer;
+            color: #909399;
+            z-index: 1;
+        }
+        .clear-btn:hover {
+            color: #409EFF;
+        }
+
+        .hint {
+            font-size: 13px;
+            color: #999;
+            margin-bottom: 16px;
+        }
+
+        .action-row {
+            display: flex;
+            align-items: center;
+        }
+
+        .instruction-card {
+            background: #f8f9fa;
+        }
+
+        .instruction-card h2 {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin: 0 0 16px 0;
+        }
+
+        .instruction-card p {
+            font-size: 14px;
+            color: #555;
+            margin: 0 0 12px 0;
+            line-height: 1.6;
+        }
+
+        .instruction-card .step-list {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.8;
+            margin: 0 0 12px 0;
+        }
+
+        .instruction-card .alert {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .result-box-new {
+            margin-top: 30px;
+        }
+        .rb-header {
+            font-size: 15px;
+            color: #333;
+            margin-bottom: 24px;
+        }
+        .rb-table {
+            width: 100%;
+        }
+        .rb-thead {
+            display: flex;
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 12px;
+            padding-left: 5px;
+        }
+        .rb-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+            gap: 24px;
+        }
+        .rb-col-code {
+            flex: 0 0 280px;
+        }
+        .rb-col-time {
+            flex: 0 0 80px;
+        }
+        .rb-col-secret {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .code-group {
+            display: flex;
+            height: 42px;
+            border-radius: 21px;
+            overflow: hidden;
+            background: #f1f5f9;
+        }
+        .code-text {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            color: #8b5cf6;
+            font-size: 18px;
+            font-family: Arial, sans-serif;
+            letter-spacing: 1px;
+        }
+        .code-copy-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #dcfce7;
+            color: #10b981;
+            padding: 0 24px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .code-copy-btn:hover {
+            background: #bbf7d0;
+        }
+        
+        .time-text {
+            color: #ef4444;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .secret-text {
+            background: #f1f5f9;
+            color: #666;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            border-radius: 21px;
+            font-size: 15px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                margin-top: 10px;
+            }
+            .rb-thead {
+                display: none;
+            }
+            .rb-row {
+                flex-direction: column;
+                align-items: stretch;
+                background: #fdfdfd;
+                padding: 16px;
+                border-radius: 12px;
+                gap: 12px;
+                border: 1px solid #f0f0f0;
+            }
+            .rb-col-code, .rb-col-time, .rb-col-secret {
+                flex: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="container">
+        
+        <div class="card">
+            <div class="header">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <h1>51XUEAI.ORG的2FA验证工具</h1>
+                    <a href="https://51xueai.org" target="_blank" style="text-decoration: none;">
+                        <el-button type="danger" plain size="small" icon="el-icon-shopping-cart-2">选购更多AI商品就去我要学AI商城</el-button>
+                    </a>
+                </div>
+                <p>2FA双重验证码/二步验证码获取工具 (谷歌身份验证器的网页版)<br>TOTP验证码生成器</p>
+            </div>
+
+            <div class="textarea-box">
+                <el-input
+                    type="textarea"
+                    :rows="6"
+                    placeholder="请输入或粘贴2FA密钥，例如 JBSWY3DPEHPK3PXP"
+                    v-model.trim="inputText"
+                    @input="handleInput">
+                </el-input>
+                <i v-if="inputText" class="el-icon-delete clear-btn" title="清空" @click="clearInput"></i>
+            </div>
+            
+            <div class="hint">也可以输入完整格式: UID|密码|2FA|邮箱|邮箱密码... 每行1个账户</div>
+
+            <div class="action-row">
+                <el-button type="primary" icon="el-icon-key" @click="generateCodes">获取验证码</el-button>
+            </div>
+
+            <div class="result-box-new" v-if="results.length > 0">
+                <div class="rb-header">来自2FA的信息</div>
+                <div class="rb-table">
+                    <div class="rb-thead">
+                        <div class="rb-col-code">验证码</div>
+                        <div class="rb-col-time">时间</div>
+                        <div class="rb-col-secret">2FA</div>
+                    </div>
+                    <div class="rb-row" v-for="(item, index) in results" :key="index">
+                        <div class="rb-col-code">
+                            <div class="code-group">
+                                <div class="code-text" v-text="item.code"></div>
+                                <div class="code-copy-btn" @click="copyText(item.code)">
+                                    <i class="el-icon-key"></i> 复制
+                                </div>
+                            </div>
+                        </div>
+                        <div class="rb-col-time">
+                            <div class="time-text">
+                                <i class="el-icon-time"></i> <span v-text="seconds"></span>
+                            </div>
+                        </div>
+                        <div class="rb-col-secret">
+                            <div class="secret-text" :title="item.secret" v-text="item.secret"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+
+        <div class="card instruction-card">
+            <h2>谷歌身份验证器网页版使用指南</h2>
+            <p>2FA双重验证 (Two-factor authentication) 是保障账户安全的重要机制，在登录时除密码外还需输入动态验证码。</p>
+            <p>本工具作为谷歌身份验证器(Google Authenticator)的网页版本，支持通过2FA密钥生成6位动态验证码，适用于各种需要二次验证的平台。</p>
+            
+            <div class="step-list">
+                使用步骤：<br>
+                1. 输入您的2FA密钥或含有2FA密钥的账户信息行<br>
+                2. 点击"获取验证码"按钮<br>
+                3. 系统将生成当前有效的验证码，您可以点击数字复制使用<br>
+                4. 验证码每30秒自动更新一次
+            </div>
+
+            <div class="alert">
+                提示: 请妥善保管您的2FA密钥，不要泄露给他人，以确保您的账户安全。
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; margin-bottom: 30px; font-size: 14px; color: #999;">
+            © <script>document.write(new Date().getFullYear())</script> 
+            <a href="https://51xueai.org" target="_blank" style="color: #409EFF; text-decoration: none;">51xueai.org</a>
+            保留所有权利
+        </div>
+
+    </div>
+
+    <script>
+        new Vue({
+            el: "#app",
+            data() {
+                return {
+                    inputText: "",
+                    results: [],
+                    seconds: 30,
+                    timerData: null,
+                    period: 30
+                };
+            },
+            created() {
+                const urlParams = new URLSearchParams(window.location.search);
+                let secret = urlParams.get("code");
+                
+                // 专为 Cloudflare 根目录绑定的抓取逻辑
+                if (!secret) {
+                    const pathParts = window.location.pathname.split('/').filter(p => p);
+                    if (pathParts.length >= 1) {
+                        // 因为放在独立网站根目录，所以直接提取斜杠后面的第一段作为密钥
+                        secret = pathParts[0];
+                    }
+                }
+                
+                if (secret) {
+                    this.inputText = secret;
+                    this.generateCodes();
+                }
+            },
+            methods: {
+                clearInput() {
+                    this.inputText = "";
+                    this.results = [];
+                    this.stopTimer();
+                },
+                handleInput() {
+                    // Auto generate if user pastes a very clean single secret for convenience
+                    if (this.inputText && !this.inputText.includes('\n') && !this.inputText.includes('|') && this.inputText.length >= 16 && this.inputText.length <= 32) {
+                        this.generateCodes();
+                    }
+                },
+                extractSecret(line) {
+                    if (!line) return null;
+                    
+                    if (!line.includes('|' ) && !line.includes(':') && !line.includes('----')) {
+                        return line.replace(/\s+/g, '');
+                    }
+                    
+                    let parts = [];
+                    if (line.includes('|')) {
+                        parts = line.split('|');
+                    } else if (line.includes('----')) {
+                        parts = line.split('----');
+                    } else if (line.includes(':')) {
+                        parts = line.split(':');
+                    }
+                    
+                    const b32Regex = /^[A-Z2-7]{16,32}$/i;
+                    
+                    for (let p of parts) {
+                        let cleanPart = p.trim().replace(/\s+/g, '');
+                        if (cleanPart && b32Regex.test(cleanPart)) {
+                            return cleanPart;
+                        }
+                    }
+                    
+                    if (parts.length >= 3 && line.includes('|')) {
+                        return parts[2].trim().replace(/\s+/g, '');
+                    }
+                    
+                    return null;
+                },
+                generateCodes() {
+                    if (!this.inputText) {
+                        this.$message.warning("请输入2FA密钥");
+                        return;
+                    }
+
+                    const lines = this.inputText.split('\n').map(l => l.trim()).filter(l => l);
+                    let newResults = [];
+                    let hasError = false;
+
+                    for (let line of lines) {
+                        let originalLine = line;
+                        let secret = this.extractSecret(line);
+                        
+                        if (!secret) {
+                            newResults.push({
+                                originalLine: originalLine,
+                                code: "解析失败",
+                                totp: null,
+                                secret: "无法提取密钥"
+                            });
+                            hasError = true;
+                            continue;
+                        }
+
+                        try {
+                            let totp = new OTPAuth.TOTP({
+                                issuer: "",
+                                label: "",
+                                algorithm: "SHA1",
+                                digits: 6,
+                                period: 30,
+                                secret: secret,
+                            });
+                            
+                            newResults.push({
+                                originalLine: originalLine,
+                                code: totp.generate(),
+                                totp: totp,
+                                secret: secret
+                            });
+                        } catch (e) {
+                            newResults.push({
+                                originalLine: originalLine,
+                                code: "密钥无效",
+                                totp: null,
+                                secret: secret
+                            });
+                            hasError = true;
+                        }
+                    }
+
+                    this.results = newResults;
+                    
+                    if (newResults.length > 0) {
+                        this.startTimer();
+                        if (!hasError && this.results.length === 1) {
+                            // Silent success for single auto-parse
+                        } else if (hasError) {
+                            this.$message.warning("部分密钥格式可能无效，请检查");
+                        } else {
+                            this.$message.success(`成功生成 ${newResults.length} 个验证码`);
+                        }
+                    }
+                },
+                refreshCodes() {
+                    for (let item of this.results) {
+                        if (item.totp) {
+                            item.code = item.totp.generate();
+                        }
+                    }
+                },
+                startTimer() {
+                    this.stopTimer();
+                    this.seconds = 30 - (Math.floor(Date.now() / 1000) % 30);
+                    
+                    this.timerData = setInterval(() => {
+                        this.seconds -= 1;
+                        if (this.seconds <= 0) {
+                            this.refreshCodes();
+                            this.seconds = 30;
+                        }
+                    }, 1000);
+                },
+                stopTimer() {
+                    if (this.timerData) {
+                        clearInterval(this.timerData);
+                        this.timerData = null;
+                    }
+                },
+                copyText(text) {
+                    if (!text || text === "解析失败" || text === "密钥无效") return;
+                    
+                    let textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    textArea.style.top = "0";
+                    textArea.style.left = "0";
+                    textArea.style.position = "fixed";
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    
+                    try {
+                        let successful = document.execCommand('copy');
+                        if (successful) {
+                            this.$message.success("🟢 验证码 " + text + " 已成功复制！");
+                        } else {
+                            this.$message.error("复制失败，请手动选择复制");
+                        }
+                    } catch (err) {
+                        this.$message.error("复制失败，您的浏览器暂不支持此操作");
+                    }
+                    
+                    document.body.removeChild(textArea);
+                }
+            },
+            beforeDestroy() {
+                this.stopTimer();
+            }
+        });
+    </script>
+</body>
+</html>
