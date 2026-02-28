@@ -1,8 +1,11 @@
 
-DEMO演示:2FA.51xueai.org
+
 # Cloudflare Pages 免费一键部署指南
 
+**DEMO演示: 2fa.51xueai.org**
+
 这套全新的 2FA 验证码工具已针对 Cloudflare Pages 平台进行了极致优化。由于它是一个纯前台、无数据库依赖的静态页面，非常适合部署在全球极速且永久免费的 Cloudflare 面板上！
+
 
 ## 获取部署包
 
